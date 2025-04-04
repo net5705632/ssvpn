@@ -1,43 +1,63 @@
-name: Extract SS Nodes
-on:
-  schedule:
-    - cron: '0 0 * * *'  # 每天 UTC 时间 0 点运行
-  workflow_dispatch:  # 允许手动触发
+import os
+import requests
+import base64
+import json
+import pyaes
+import binascii
+from datetime import datetime
 
-jobs:
-  run-script:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+# 安全读取环境变量
+PHPSESSID = os.getenv('PHPSESSID')
+d = os.getenv('DECRYPT_KEY_D').encode()
+e = os.getenv('DECRYPT_KEY_E').encode()
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+def print_banner():
+    banner = r"""
+      H͜͡E͜͡L͜͡L͜͡O͜͡ ͜͡W͜͡O͜͡R͜͡L͜͡D͜͡ ͜͡E͜͡X͜͡T͜͡R͜͡A͜͡C͜͡T͜͡ ͜͡S͜͡S͜͡ ͜͡N͜͡O͜͡D͜͡E͜͡
+    𓆝 𓆟 𓆞 𓆟 𓆝 𓆟 𓆞 𓆟 𓆝 𓆟 𓆞 𓆟
+    Author : 𝐼𝑢
+    Date   : {date}
+    Version: 1.1
+    𓆝 𓆟 𓆞 𓆟 𓆝 𓆟 𓆞 𓆟 𓆝 𓆟 𓆞 𓆟
+    """.format(date=datetime.now().strftime('%Y-%m-%d'))
+    print(banner)
 
-      - name: Install dependencies
-        run: |
-          pip install requests pyaes
+def aes_decrypt(ciphertext, key, iv):
+    decryptor = pyaes.AESModeOfOperationCBC(key, iv=iv)
+    decrypted = decryptor.decrypt(ciphertext)
+    return decrypted[:-decrypted[-1]]
 
-      - name: Run script and save output
-        run: |
-          python your_script.py > ss.txt  # 重定向输出到文件
-          echo "SS nodes extracted at $(date)" >> ss.txt  # 添加时间戳
+def main():
+    headers = {
+        'Cookie': f'PHPSESSID={PHPSESSID}',
+        'User-Agent': 'SkrKK/1.3.1 (iPhone; iOS 13.5; Scale/2.00)',
+        # 其他 headers...
+    }
 
-      - name: Upload result
-        uses: actions/upload-artifact@v3
-        with:
-          name: ss-nodes
-          path: ss.txt
-# 原代码...
+    try:
+        response = requests.post(
+            'http://api.skrapp.net/api/serverlist',
+            headers=headers,
+            data={'data': '4265a9c353cd8624fd2bc7b5d75d2f18b1b5e66ccd37e2dfa628bcb8f73db2f14ba98bc6a1d8d0d1c7ff1ef0823b11264d0addaba2bd6a30bdefe06f4ba994ed'},
+            timeout=15
+        )
+        response.raise_for_status()
 
-if j.status_code == 200:
-    with open("ss.txt", "w") as file:
-        file.write("𓆝 Generated SS Nodes 𓆟\n\n")
-        for o in n['data']:
-            p = f"aes-256-cfb:{o['password']}@{o['ip']}:{o['port']}"
-            q = base64.b64encode(p.encode('utf-8')).decode('utf-8')
-            r = f"ss://{q}#{o['title']}\n"
-            file.write(r)  # 写入文件
-        file.write("\n𓆝 End of List 𓆟")
+        ciphertext = binascii.unhexlify(response.text.strip())
+        decrypted = aes_decrypt(ciphertext, d, e)
+        nodes = json.loads(decrypted)
+
+        with open('ss.txt', 'w') as f:
+            f.write("=== SS Node List ===\n\n")
+            for node in nodes['data']:
+                ss_url = f"aes-256-cfb:{node['password']}@{node['ip']}:{node['port']}"
+                encoded = base64.b64encode(ss_url.encode()).decode()
+                f.write(f"ss://{encoded}#{node['title']}\n")
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        exit(1)
+
+if __name__ == "__main__":
+    print_banner()
+    main()
