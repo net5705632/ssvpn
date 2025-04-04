@@ -1,0 +1,43 @@
+name: Extract SS Nodes
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天 UTC 时间 0 点运行
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests pyaes
+
+      - name: Run script and save output
+        run: |
+          python your_script.py > ss.txt  # 重定向输出到文件
+          echo "SS nodes extracted at $(date)" >> ss.txt  # 添加时间戳
+
+      - name: Upload result
+        uses: actions/upload-artifact@v3
+        with:
+          name: ss-nodes
+          path: ss.txt
+# 原代码...
+
+if j.status_code == 200:
+    with open("ss.txt", "w") as file:
+        file.write("𓆝 Generated SS Nodes 𓆟\n\n")
+        for o in n['data']:
+            p = f"aes-256-cfb:{o['password']}@{o['ip']}:{o['port']}"
+            q = base64.b64encode(p.encode('utf-8')).decode('utf-8')
+            r = f"ss://{q}#{o['title']}\n"
+            file.write(r)  # 写入文件
+        file.write("\n𓆝 End of List 𓆟")
