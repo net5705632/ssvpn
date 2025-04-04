@@ -1,0 +1,16 @@
+name: Run ss12.py Daily
+on:
+  schedule:
+    - cron: '0 0 * * *'  # UTC时间每天0点（北京时间8点）
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4  # 拉取仓库代码
+      - uses: actions/setup-python@v4  # 安装Python
+        with:
+          python-version: '3.x'  # 指定Python版本（如3.10）
+      - name: Install dependencies
+        run: pip install -r requirements.txt  # 安装依赖（如有）
+      - name: Run ss12.py
+        run: python ssvpn/ss12.py  # 运行脚本（路径根据仓库结构调整）
