@@ -1,51 +1,27 @@
-name: SS Links Auto-Updater
+name: ss Python Script
 
 on:
   schedule:
-    - cron: '0 0 * * *'          # UTC时间每天0点
-    - cron: '0 8 * * *'           # 北京时间每天16点（UTC+8）
-      timezone: Asia/Shanghai
-  workflow_dispatch:              # 支持手动触发
+    - cron: '0 0 * * *'  # 每天午夜运行一次，根据需要调整cron表达式
 
 jobs:
-  generate-links:
+  run-script:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  # 根据你的脚本所需的Python版本调整
 
-      - name: Install dependencies
-        run: |
-          pip install requests pyaes
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pyaes base64 sys json binascii
+        # 如果脚本有依赖项，可以在这里安装，例如：pip install requests
 
-      - name: Run script & filter output
-        run: |
-          # 运行脚本并过滤有效SS链接
-          python3 ss12.py | grep 'ss://' > ss.txt
-          
-          # 空文件检测（无有效链接则报错）
-          if [ ! -s ss.txt ]; then
-            echo "Error: No valid SS links generated!"
-            exit 1
-          fi
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git add ss.txt
-          
-          # 仅当文件变化时提交
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Auto-update: $(date +'%Y-%m-%d %H:%M')"
-            git push
-          fi
+    - name: Run script
+      run: python ssvpn/ss12.py
