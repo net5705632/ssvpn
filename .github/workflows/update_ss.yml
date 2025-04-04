@@ -1,49 +1,51 @@
-name: SS Links Updater
+name: SS Links Auto-Updater
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间0点自动运行
-    - cron: '0 8 * * *'   # 北京时间每天16点(UTC+8)
+    - cron: '0 0 * * *'          # UTC时间每天0点
+    - cron: '0 8 * * *'           # 北京时间每天16点（UTC+8）
       timezone: Asia/Shanghai
-  workflow_dispatch:      # 允许手动触发
+  workflow_dispatch:              # 支持手动触发
 
 jobs:
-  update:
+  generate-links:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: |
-        pip install requests pyaes  # 添加pyaes依赖
+      - name: Install dependencies
+        run: |
+          pip install requests pyaes
 
-    - name: Run script & filter output
-      run: |
-        # 过滤包含SS链接的输出
-        python3 ss12.py | grep 'ss://' > ss.txt
-        
-        # 检查文件是否生成内容
-        if [ ! -s ss.txt ]; then
-          echo "Error: No SS links generated!"
-          exit 1
-        fi
+      - name: Run script & filter output
+        run: |
+          # 运行脚本并过滤有效SS链接
+          python3 ss12.py | grep 'ss://' > ss.txt
+          
+          # 空文件检测（无有效链接则报错）
+          if [ ! -s ss.txt ]; then
+            echo "Error: No valid SS links generated!"
+            exit 1
+          fi
 
-    - name: Commit changes
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git add ss.txt
-        
-        # 仅当文件有变化时提交
-        if git diff --quiet --exit-code; then
-          echo "No changes to commit"
-        else
-          git commit -m "Auto-update: $(date +'%Y-%m-%d %H:%M')"
-          git push
-        fi
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add ss.txt
+          
+          # 仅当文件变化时提交
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update: $(date +'%Y-%m-%d %H:%M')"
+            git push
+          fi
