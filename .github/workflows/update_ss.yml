@@ -1,0 +1,37 @@
+name: Update SS Links
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天UTC时间0点运行（可调整时区）
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true  # 保留Git凭证用于推送
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'  # 指定你的Python版本
+
+    - name: Install dependencies
+      run: |
+        pip install requests  # 添加脚本所需依赖
+
+    - name: Run script and save output
+      run: |
+        python3 ss12.py > ss.txt  # 运行脚本并保存输出
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add ss.txt
+        # 检查文件是否有变化再提交
+        git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update SS links"
+        git push
